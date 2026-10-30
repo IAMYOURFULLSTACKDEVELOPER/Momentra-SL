@@ -1,5 +1,4 @@
 import "server-only";
-import { createEvent as createEventFromLib } from "@/lib/events";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type Event = {
