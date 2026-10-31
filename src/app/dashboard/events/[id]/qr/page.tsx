@@ -10,7 +10,7 @@ export default async function QrPage({ params }: { params: Promise<{ id: string 
   const { data: e } = await supabase.from("events").select("id,title,bride_name,groom_name,public_token").eq("id", id).maybeSingle();
   if (!e) notFound();
   return (<><Link href={`/dashboard/events/${id}`} className="text-sm text-stone-600">← {e.title}</Link><h1 className="mb-6 mt-2 font-serif text-3xl">QR code & Live Dashboard</h1>
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="flex flex-col gap-6">
       <QrManager eventId={e.id} initialToken={e.public_token} title={e.title} couple={`${e.bride_name} & ${e.groom_name}`} />
       <QrDashboard eventId={e.id} />
     </div></>);

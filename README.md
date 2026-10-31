@@ -26,7 +26,7 @@ Prerequisites: Node 20+, a Supabase project.
 npm install
 cp .env.example .env.local   # fill in values
 npx supabase link --project-ref <ref>
-npx supabase db push         # applies supabase/migrations
+npx supabase db push         # applies supabase/migrations (including video support)
 npm run dev
 ```
 Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`, and server-only `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`.

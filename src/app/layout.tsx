@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Inter } from "next/font/google";
+import { Footer } from "@/components/Footer";
 import "./globals.css";
 
 const serif = Playfair_Display({ subsets: ["latin"], variable: "--font-serif" });
@@ -8,5 +9,5 @@ export const metadata: Metadata = { title: "MOMENTRA — Every Moment, Together"
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (<html lang="en" className={`${serif.variable} ${sans.variable}`}><body>{children}</body></html>);
+  return (<html lang="en" className={`${serif.variable} ${sans.variable}`}><body className="flex min-h-screen flex-col">{children}<Footer /></body></html>);
 }

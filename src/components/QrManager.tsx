@@ -25,7 +25,7 @@ export function QrManager({ eventId, initialToken, title, couple }: { eventId: s
     setToken(data as string); setMsg("New QR code generated. Old links no longer work.");
   }
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="flex flex-col gap-6">
       <div className="card">
         <h2 className="font-serif text-xl">Preview</h2>
         <div className="mx-auto mt-4 w-64" dangerouslySetInnerHTML={{ __html: svg }} aria-label="QR code preview" role="img" />

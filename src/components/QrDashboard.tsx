@@ -130,7 +130,7 @@ export function QrDashboard({ eventId }: { eventId: string }) {
         <p className="text-center text-stone-600">No photos uploaded yet. Share the QR code with your guests!</p>
       ) : (
         <>
-          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4">
             {photos.map((p) => (
               <li key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-stone-200">
                 {p.thumbUrl && <img src={p.thumbUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />}
