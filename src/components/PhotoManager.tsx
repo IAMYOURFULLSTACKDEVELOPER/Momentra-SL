@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Download, Trash2, X } from "lucide-react";
+import { Check, Download, Trash2, X, Video } from "lucide-react";
 import { createClient } from "@/lib/supabase/browser";
 
-export type OrgPhoto = { id: string; approval_status: "pending" | "approved" | "rejected"; created_at: string; thumbUrl: string | null; fullUrl: string | null };
+export type OrgPhoto = { id: string; approval_status: "pending" | "approved" | "rejected"; created_at: string; thumbUrl: string | null; fullUrl: string | null; videoUrl: string | null; mediaType: "photo" | "video" };
 
 export function PhotoManager({ eventId, photos, moderation, hasMore, nextCursor }: { eventId: string; photos: OrgPhoto[]; moderation: boolean; hasMore: boolean; nextCursor: string | null }) {
   const router = useRouter();
@@ -34,7 +34,7 @@ export function PhotoManager({ eventId, photos, moderation, hasMore, nextCursor 
     const res = await fetch("/api/photos/zip", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) });
     setBusy(false);
     if (!res.ok) return setMsg((await res.json()).error ?? "Archive failed");
-    const url = URL.createObjectURL(await res.blob()); const a = document.createElement("a"); a.href = url; a.download = "wedding-photos.zip"; a.click(); URL.revokeObjectURL(url); setMsg(null);
+    const url = URL.createObjectURL(await res.blob()); const a = document.createElement("a"); a.href = url; a.download = "momentra-photos.zip"; a.click(); URL.revokeObjectURL(url); setMsg(null);
   }
   const badge = { pending: "bg-amber-100 text-amber-800", approved: "bg-green-100 text-green-800", rejected: "bg-red-100 text-red-800" } as const;
   return (
@@ -52,7 +52,7 @@ export function PhotoManager({ eventId, photos, moderation, hasMore, nextCursor 
         <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {photos.map((p) => (
             <li key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-stone-200">
-              <button className="h-full w-full" onClick={() => setLb(p)} aria-label="Open photo">{p.thumbUrl && <img src={p.thumbUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />}</button>
+              <button className="h-full w-full" onClick={() => setLb(p)} aria-label="Open photo">{p.thumbUrl && <img src={p.thumbUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />}{p.mediaType === "video" && <Video className="absolute bottom-1 right-1 h-4 w-4 text-white drop-shadow" />}</button>
               <input type="checkbox" aria-label="Select photo" className="absolute left-2 top-2 h-5 w-5" checked={sel.has(p.id)} onChange={() => toggle(p.id)} />
               <span className={`absolute bottom-1 left-1 rounded px-1.5 py-0.5 text-[10px] ${badge[p.approval_status]}`}>{p.approval_status}</span>
             </li>
@@ -61,9 +61,13 @@ export function PhotoManager({ eventId, photos, moderation, hasMore, nextCursor 
       )}
       {hasMore && nextCursor && <div className="mt-6 text-center"><a className="btn-ghost" href={`?before=${encodeURIComponent(nextCursor)}`}>Older photos</a></div>}
       {lb && (<div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/90" onClick={() => setLb(null)}>
-        {lb.fullUrl && <img src={lb.fullUrl} alt="" className="max-h-[90vh] max-w-[95vw] object-contain" />}
+        {lb.mediaType === "video" && lb.videoUrl ? (
+          <video src={lb.videoUrl} controls autoPlay className="max-h-[90vh] max-w-[95vw]" onClick={(e) => e.stopPropagation()} />
+        ) : lb.fullUrl ? (
+          <img src={lb.fullUrl} alt="" className="max-h-[90vh] max-w-[95vw] object-contain" />
+        ) : null}
         <a className="btn-primary absolute bottom-4" href={`/api/photos/download?id=${lb.id}`} onClick={(e) => e.stopPropagation()}><Download className="h-4 w-4" />Download</a>
-        <button className="absolute right-3 top-3 text-white" aria-label="Close"><X /></button></div>)}
+        <button className="absolute right-3 top-3 text-white" aria-label="Close" onClick={(e) => e.stopPropagation()}><X /></button></div>)}
     </>
   );
 }

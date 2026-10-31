@@ -1,8 +1,8 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Video } from "lucide-react";
 
-type P = { id: string; thumbUrl: string | null; fullUrl: string | null; createdAt: string; width: number | null; height: number | null };
+type P = { id: string; thumbUrl: string | null; fullUrl: string | null; videoUrl: string | null; createdAt: string; width: number | null; height: number | null; mediaType: "photo" | "video" };
 
 export function GuestGallery({ token }: { token: string }) {
   const [photos, setPhotos] = useState<P[]>([]);
@@ -38,14 +38,18 @@ export function GuestGallery({ token }: { token: string }) {
     <>
       <p className="mb-3 text-sm text-stone-600">{total} photo{total === 1 ? "" : "s"}</p>
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-        {photos.map((p, i) => (<li key={p.id}><button className="block aspect-square w-full overflow-hidden rounded-xl bg-stone-200" onClick={() => setLb(i)} aria-label="Open photo">{p.thumbUrl && <img src={p.thumbUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />}</button></li>))}
+        {photos.map((p, i) => (<li key={p.id} className="relative"><button className="block aspect-square w-full overflow-hidden rounded-xl bg-stone-200" onClick={() => setLb(i)} aria-label="Open photo">{p.thumbUrl && <img src={p.thumbUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />}{p.mediaType === "video" && <Video className="absolute bottom-1 right-1 h-4 w-4 text-white drop-shadow" />}</button></li>))}
       </ul>
       {cursor && <div className="mt-6 text-center"><button className="btn-ghost" onClick={() => void load(cursor)}>Load more</button></div>}
       {cur && (
         <div role="dialog" aria-modal="true" aria-label="Photo viewer" className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
           <button className="absolute right-3 top-3 text-white" aria-label="Close" onClick={() => setLb(null)}><X /></button>
           {lb! > 0 && <button className="absolute left-2 text-white" aria-label="Previous" onClick={() => setLb(lb! - 1)}><ChevronLeft className="h-8 w-8" /></button>}
-          {cur.fullUrl && <img src={cur.fullUrl} alt="" className="max-h-[90vh] max-w-[95vw] object-contain" />}
+          {cur.mediaType === "video" && cur.videoUrl ? (
+            <video src={cur.videoUrl} controls autoPlay className="max-h-[90vh] max-w-[95vw]" />
+          ) : cur.fullUrl ? (
+            <img src={cur.fullUrl} alt="" className="max-h-[90vh] max-w-[95vw] object-contain" />
+          ) : null}
           {lb! < photos.length - 1 && <button className="absolute right-2 text-white" aria-label="Next" onClick={() => setLb(lb! + 1)}><ChevronRight className="h-8 w-8" /></button>}
           <div className="absolute bottom-4 flex items-center gap-4 text-sm text-white"><span>{new Date(cur.createdAt).toLocaleString()}</span><button className="underline" onClick={() => void report(cur.id)}>Report</button></div>
         </div>

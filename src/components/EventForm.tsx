@@ -42,7 +42,7 @@ export function EventForm({ eventId, defaults }: { eventId?: string; defaults?: 
       <Field label="Upload deadline (optional)" error={errors.uploadDeadline?.message}><input className="input" type="datetime-local" {...register("uploadDeadline")} /></Field>
       <label className="flex items-center gap-2 self-end pb-2 text-sm"><input type="checkbox" className="h-4 w-4" {...register("moderationEnabled")} />Require approval before photos appear</label>
       {error && <p role="alert" className="text-sm text-red-700 sm:col-span-2">{error}</p>}
-      <div className="sm:col-span-2"><button className="btn-primary" disabled={isSubmitting}>{isSubmitting ? "Saving…" : eventId ? "Save changes" : "Create wedding"}</button></div>
+      <div className="sm:col-span-2"><button className="btn-primary" disabled={isSubmitting}>{isSubmitting ? "Saving…" : eventId ? "Save changes" : "Create event"}</button></div>
     </form>
   );
 }

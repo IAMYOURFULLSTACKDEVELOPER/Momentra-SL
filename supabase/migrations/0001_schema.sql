@@ -1,4 +1,4 @@
--- WeddingSnap schema, RLS, storage. Apply with: supabase db push
+-- MOMENTRA schema, RLS, storage. Apply with: supabase db push
 create extension if not exists pgcrypto;
 
 create type event_status as enum ('draft','active','completed','archived','suspended');

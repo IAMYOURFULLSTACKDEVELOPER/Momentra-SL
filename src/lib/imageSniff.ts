@@ -7,4 +7,12 @@ export function sniffImage(bytes: Uint8Array): AllowedMime | null {
   if (bytes.length >= 12 && String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP") return "image/webp";
   return null;
 }
-export const extFor = (m: AllowedMime) => (m === "image/jpeg" ? "jpg" : m === "image/png" ? "png" : "webp");
+export const extFor = (m: AllowedMime) => {
+  if (m === "image/jpeg") return "jpg";
+  if (m === "image/png") return "png";
+  if (m === "image/webp") return "webp";
+  if (m === "video/mp4") return "mp4";
+  if (m === "video/webm") return "webm";
+  if (m === "video/quicktime") return "mov";
+  return "bin";
+};

@@ -1,6 +1,7 @@
 {
-  "name": "weddingsnap",
+  "name": "momentra",
   "version": "0.1.0",
+  "description": "Every Moment, Together. Create your event. Share your QR code. Collect every memory.",
   "private": true,
   "scripts": {
     "dev": "next dev",

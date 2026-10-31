@@ -30,5 +30,5 @@ export async function POST(req: Request) {
   }
   await admin.from("audit_logs").insert({ actor_id: user.id, event_id: rows[0]!.event_id, action: "photos.zip_download", metadata: { count: rows.length } });
   const zip = zipSync(files, { level: 0 }); // JPEG/PNG/WebP are already compressed
-  return new Response(zip, { headers: { "Content-Type": "application/zip", "Content-Disposition": 'attachment; filename="wedding-photos.zip"', "Cache-Control": "no-store" } });
+  return new Response(zip, { headers: { "Content-Type": "application/zip", "Content-Disposition": 'attachment; filename="momentra-photos.zip"', "Cache-Control": "no-store" } });
 }

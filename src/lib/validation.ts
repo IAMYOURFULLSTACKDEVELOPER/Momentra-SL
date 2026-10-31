@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
+export const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm", "video/quicktime"] as const;
 export type AllowedMime = (typeof ALLOWED_MIME)[number];
 
 export const eventSchema = z.object({
@@ -29,13 +29,17 @@ export const uploadInitSchema = z.object({
     name: z.string().max(255),
     size: z.number().int().positive(),
     mime: z.enum(ALLOWED_MIME),
+    mediaType: z.enum(["photo", "video"]).optional(),
+    duration: z.number().int().positive().optional(),
   })).min(1).max(20),
 });
 export const uploadCompleteSchema = z.object({
   guestId: z.string().regex(/^[A-Za-z0-9-]{8,64}$/),
   photoId: z.string().uuid(),
-  width: z.number().int().min(1).max(20000),
-  height: z.number().int().min(1).max(20000),
+  width: z.number().int().min(1).max(20000).optional(),
+  height: z.number().int().min(1).max(20000).optional(),
+  mediaType: z.enum(["photo", "video"]).optional(),
+  duration: z.number().int().positive().optional(),
 });
 export const moderateSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(200),

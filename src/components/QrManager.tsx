@@ -15,8 +15,8 @@ export function QrManager({ eventId, initialToken, title, couple }: { eventId: s
   useEffect(() => { if (url) void render(url); }, [url, render]);
 
   const save = (href: string, name: string) => { const a = document.createElement("a"); a.href = href; a.download = name; a.click(); };
-  async function png() { save(await QRCode.toDataURL(url, { margin: 2, width: 1200, errorCorrectionLevel: "M" }), "wedding-qr.png"); }
-  function svgFile() { const u = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })); save(u, "wedding-qr.svg"); URL.revokeObjectURL(u); }
+  async function png() { save(await QRCode.toDataURL(url, { margin: 2, width: 1200, errorCorrectionLevel: "M" }), "momentra-qr.png"); }
+  function svgFile() { const u = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" })); save(u, "momentra-qr.svg"); URL.revokeObjectURL(u); }
   async function copy() { await navigator.clipboard.writeText(url); setMsg("Link copied."); }
   async function rotate() {
     if (!window.confirm("Generate a new QR code? The old code and link will stop working immediately, so printed signs must be replaced.")) return;

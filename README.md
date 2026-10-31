@@ -1,6 +1,10 @@
-# WeddingSnap
+# MOMENTRA
 
-QR-based wedding photo sharing. Organizers create events and print a QR code; guests scan it and upload photos from their phone browser (no app). Built with **Next.js 15 (App Router), React 19, TypeScript (strict), Tailwind CSS, Supabase** (Postgres, Auth, Storage, Realtime).
+Every Moment, Together. Create your event. Share your QR code. Collect every memory.
+
+One celebration. Hundreds of perspectives. All your memories in one place.
+
+QR-based event photo sharing. Organizers create events and print a QR code; guests scan it and upload photos from their phone browser (no app). Built with **Next.js 15 (App Router), React 19, TypeScript (strict), Tailwind CSS, Supabase** (Postgres, Auth, Storage, Realtime).
 
 > **Status:** code written but **not yet installed, type-checked, built or tested** (it was authored in an environment without network access). Run the checklist under *Verification* before relying on it. RLS policies and storage rules have **not** been verified against a live Supabase project.
 

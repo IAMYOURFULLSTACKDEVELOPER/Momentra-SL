@@ -35,20 +35,65 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
   const incoming = files.reduce((n, f) => n + f.size, 0);
   if (Number(usage ?? 0) + incoming > event.storage_quota_bytes) return fail(413, "This event's storage is full.");
 
-  const out: { photoId: string; original: { path: string; token: string }; thumb: { path: string; token: string } }[] = [];
+  const out: { photoId: string; original: { path: string; token: string }; thumb: { path: string; token: string }; video?: { path: string; token: string } }[] = [];
   for (const f of files) {
     const photoId = randomUUID();
+    const mediaType = f.mediaType || (f.mime.startsWith("video/") ? "video" : "photo");
     // Server-generated names only: original filenames are never used in paths.
     const path = `events/${event.id}/${photoId}/original.${extFor(f.mime)}`;
     const thumbPath = `events/${event.id}/${photoId}/thumb.jpg`;
-    const { error } = await db.from("photos").insert({
-      id: photoId, event_id: event.id, upload_session_id: session.id, storage_path: path, thumb_path: thumbPath,
-      original_filename: f.name.replace(/[\u0000-\u001f]/g, "").slice(0, 255), mime_type: f.mime, file_size_bytes: f.size, state: "uploading",
-    });
+    const videoPath = mediaType === "video" ? `events/${event.id}/${photoId}/video.${extFor(f.mime)}` : null;
+
+    const insertData: {
+      id: string;
+      event_id: string;
+      upload_session_id: string;
+      storage_path: string;
+      thumb_path: string;
+      original_filename: string;
+      mime_type: string;
+      file_size_bytes: number;
+      state: string;
+      media_type: string;
+      video_path?: string | null;
+      duration_ms?: number;
+    } = {
+      id: photoId,
+      event_id: event.id,
+      upload_session_id: session.id,
+      storage_path: path,
+      thumb_path: thumbPath,
+      original_filename: f.name.replace(/[\u0000-\u001f]/g, "").slice(0, 255),
+      mime_type: f.mime,
+      file_size_bytes: f.size,
+      state: "uploading",
+      media_type: mediaType,
+    };
+
+    if (mediaType === "video" && videoPath) {
+      insertData.video_path = videoPath;
+      if (f.duration) insertData.duration_ms = f.duration;
+    }
+
+    const { error } = await db.from("photos").insert(insertData);
     if (error) return fail(500, "Could not register upload");
+
     const [o, t] = await Promise.all([db.storage.from("photos").createSignedUploadUrl(path), db.storage.from("photos").createSignedUploadUrl(thumbPath)]);
     if (o.error || t.error || !o.data || !t.data) return fail(500, "Could not authorize upload");
-    out.push({ photoId, original: { path, token: o.data.token }, thumb: { path: thumbPath, token: t.data.token } });
+
+    const uploadData: { photoId: string; original: { path: string; token: string }; thumb: { path: string; token: string }; video?: { path: string; token: string } } = {
+      photoId,
+      original: { path, token: o.data.token },
+      thumb: { path: thumbPath, token: t.data.token },
+    };
+
+    if (mediaType === "video" && videoPath) {
+      const v = await db.storage.from("photos").createSignedUploadUrl(videoPath);
+      if (v.error || !v.data) return fail(500, "Could not authorize video upload");
+      uploadData.video = { path: videoPath, token: v.data.token };
+    }
+
+    out.push(uploadData);
   }
   return NextResponse.json({ uploads: out });
 }

@@ -44,7 +44,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const titles = { login: "Welcome back", register: "Create your account", forgot: "Reset your password", reset: "Choose a new password" };
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6">
-      <Link href="/" className="mb-6 text-center font-serif text-xl">WeddingSnap</Link>
+      <Link href="/" className="mb-6 flex items-center justify-center gap-3 font-serif text-xl">
+        <img src="/momentra-logo.jpg" alt="Momentra Logo" className="h-8 w-8" />
+        <span>MOMENTRA</span>
+      </Link>
       <form onSubmit={handleSubmit(onSubmit)} className="card space-y-4" noValidate>
         <h1 className="font-serif text-2xl">{titles[mode]}</h1>
         {mode === "register" && <Field label="Your name" error={errors.displayName?.message}><input className="input" autoComplete="name" {...register("displayName")} /></Field>}

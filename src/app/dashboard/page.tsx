@@ -6,9 +6,9 @@ export default async function Dashboard() {
   const { data: events } = await supabase.from("events").select("id,title,bride_name,groom_name,event_date,status").order("event_date", { ascending: false });
   return (
     <>
-      <div className="flex items-center justify-between"><h1 className="font-serif text-3xl">Your weddings</h1><Link href="/dashboard/events/new" className="btn-primary">New wedding</Link></div>
+      <div className="flex items-center justify-between"><h1 className="font-serif text-3xl">Your events</h1><Link href="/dashboard/events/new" className="btn-primary">New event</Link></div>
       {!events?.length ? (
-        <div className="card mt-8 text-center"><p className="font-serif text-xl">No weddings yet</p><p className="mt-1 text-sm text-stone-600">Create one to get your QR code.</p></div>
+        <div className="card mt-8 text-center"><p className="font-serif text-xl">No events yet</p><p className="mt-1 text-sm text-stone-600">Create one to get your QR code.</p></div>
       ) : (
         <ul className="mt-8 grid gap-4 sm:grid-cols-2">
           {events.map((e) => (
