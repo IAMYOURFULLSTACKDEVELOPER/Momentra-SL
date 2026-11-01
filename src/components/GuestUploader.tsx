@@ -76,21 +76,28 @@ export function GuestUploader({ token, maxFileBytes, open, closedReason, pending
         })
       });
       const initJson = await init.json();
-      if (!init.ok) throw init.status >= 500 ? new Error(initJson.error) : new Fatal(initJson.error ?? "Upload refused");
+      if (!init.ok) {
+        const errorMsg = initJson.error ?? "Upload refused";
+        if (init.status === 413) throw new Fatal("File is too large");
+        if (init.status === 429) throw new Fatal("You have reached the photo limit for this event");
+        if (init.status === 403) throw new Fatal("Uploads are not currently accepted for this event");
+        if (init.status === 404) throw new Fatal("Event not found");
+        throw init.status >= 500 ? new Error(errorMsg) : new Fatal(errorMsg);
+      }
       const u = initJson.uploads[0];
 
       // Upload original file
       const a = await supabase.storage.from("photos").uploadToSignedUrl(u.original.path, u.original.token, mediaData.original, { contentType: mediaData.mime });
-      if (a.error) throw new Error(a.error.message);
+      if (a.error) throw new Error(`Storage upload failed: ${a.error.message}`);
 
       // Upload thumbnail
       const b = await supabase.storage.from("photos").uploadToSignedUrl(u.thumb.path, u.thumb.token, mediaData.thumb, { contentType: "image/jpeg" });
-      if (b.error) throw new Error(b.error.message);
+      if (b.error) throw new Error(`Thumbnail upload failed: ${b.error.message}`);
 
       // Upload video file if it's a video
       if (it.mediaType === "video" && u.video) {
         const v = await supabase.storage.from("photos").uploadToSignedUrl(u.video.path, u.video.token, mediaData.original, { contentType: mediaData.mime });
-        if (v.error) throw new Error(v.error.message);
+        if (v.error) throw new Error(`Video upload failed: ${v.error.message}`);
       }
 
       // Complete upload
@@ -106,7 +113,11 @@ export function GuestUploader({ token, maxFileBytes, open, closedReason, pending
           duration: mediaData.duration
         })
       });
-      if (!done.ok) { const j = await done.json(); throw done.status >= 500 ? new Error(j.error) : new Fatal(j.error ?? "Upload failed"); }
+      if (!done.ok) {
+        const j = await done.json();
+        const errorMsg = j.error ?? "Upload completion failed";
+        throw done.status >= 500 ? new Error(errorMsg) : new Fatal(errorMsg);
+      }
       patch(it.id, { status: "done" }); // success only after the server confirmed storage + database
     } catch (e) {
       if (!(e instanceof Fatal) && attempt < 2) { await sleep(800 * 2 ** attempt); return uploadOne(it, token_, attempt + 1); } // backoff for transient failures

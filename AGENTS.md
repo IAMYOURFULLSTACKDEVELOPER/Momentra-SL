@@ -12,12 +12,16 @@ Momentra is a QR-based event photo sharing platform built with Next.js 15, React
 ## Common Issues & Fixes
 
 ### "Could not register upload" Error
-**Cause**: The photos table was missing video support columns (`media_type`, `video_path`, `duration_ms`) that were added in migration 0002 but may not have been applied.
+**Cause**: The photos table was missing video support columns (`media_type`, `video_path`, `duration_ms`) that were added in migration 0002 but may not have been applied. The upload route was attempting to insert these columns even when they didn't exist in the database.
 
-**Fix**: Run migration 0003_ensure_video_support.sql to add these columns idempotently:
+**Fix**: 
+1. Run migration 0003_ensure_video_support.sql to add these columns idempotently:
 ```bash
 npx supabase db push
 ```
+2. Updated upload routes to gracefully handle missing columns by falling back to legacy behavior if the video columns don't exist
+3. Added comprehensive error logging to diagnose future issues
+4. Improved error messages in the UI to distinguish between different failure types
 
 ### Environment Variables
 Required variables in `.env.local`:

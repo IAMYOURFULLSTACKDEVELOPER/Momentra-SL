@@ -19,17 +19,30 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string;
   const db = createAdminClient();
 
   const { data: photo } = await db.from("photos").select("id,event_id,storage_path,thumb_path,video_path,state,mime_type,upload_session_id,media_type").eq("id", photoId).eq("event_id", event.id).maybeSingle();
-  if (!photo || photo.state !== "uploading") return fail(404, "Upload not found");
+  if (!photo || photo.state !== "uploading") {
+    console.error("Photo not found or not in uploading state:", { photoId, found: !!photo, state: photo?.state });
+    return fail(404, "Upload not found");
+  }
   const { data: session } = await db.from("upload_sessions").select("guest_identifier").eq("id", photo.upload_session_id).maybeSingle();
-  if (!session || session.guest_identifier !== body.data.guestId) return fail(403, "Not your upload"); // guests cannot finalize each other's uploads
+  if (!session || session.guest_identifier !== body.data.guestId) {
+    console.error("Session validation failed:", { sessionId: photo.upload_session_id, sessionFound: !!session });
+    return fail(403, "Not your upload"); // guests cannot finalize each other's uploads
+  }
 
-  const mediaType = body.data.mediaType || photo.media_type || (photo.mime_type.startsWith("video/") ? "video" : "photo");
+  const mediaType = body.data.mediaType || photo.media_type || (photo.mime_type?.startsWith("video/") ? "video" : "photo");
 
   const reject = async (reason: string, status = 422) => {
     const pathsToRemove = [photo.storage_path, photo.thumb_path];
     if (photo.video_path) pathsToRemove.push(photo.video_path);
-    await db.storage.from("photos").remove(pathsToRemove);
-    await db.from("photos").update({ state: "failed", failure_reason: reason }).eq("id", photo.id);
+    const { error: removeError } = await db.storage.from("photos").remove(pathsToRemove);
+    if (removeError) {
+      console.error("Failed to remove storage objects:", removeError);
+    }
+    const updateData: Record<string, unknown> = { state: "failed", failure_reason: reason };
+    const { error: updateError } = await db.from("photos").update(updateData).eq("id", photo.id);
+    if (updateError) {
+      console.error("Failed to mark photo as failed:", updateError);
+    }
     return fail(status, reason);
   };
 
@@ -69,6 +82,34 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string;
   }
 
   const { error } = await db.from("photos").update(updateData).eq("id", photo.id).eq("state", "uploading");
-  if (error) return fail(500, "Could not save photo");
+  if (error) {
+    console.error("Photo finalization failed:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+    // If error is about missing column, try without optional fields
+    if (error.code === "42703" || error.message?.includes("column") || error.message?.includes("does not exist")) {
+      console.warn("Optional columns may not exist, retrying with minimal update");
+      const legacyUpdateData: {
+        state: string;
+        file_size_bytes: number;
+        approval_status: string;
+        width?: number;
+        height?: number;
+      } = {
+        state: "ready",
+        file_size_bytes: orig.data.size,
+        approval_status: event.moderation_enabled ? "pending" : "approved",
+      };
+      if (mediaType === "photo" && body.data.width && body.data.height) {
+        legacyUpdateData.width = body.data.width;
+        legacyUpdateData.height = body.data.height;
+      }
+      const { error: retryError } = await db.from("photos").update(legacyUpdateData).eq("id", photo.id).eq("state", "uploading");
+      if (retryError) {
+        console.error("Legacy photo finalization also failed:", { code: retryError.code, message: retryError.message, details: retryError.details, hint: retryError.hint });
+        return fail(500, "Could not save photo");
+      }
+    } else {
+      return fail(500, "Could not save photo");
+    }
+  }
   return NextResponse.json({ ok: true, pendingApproval: event.moderation_enabled });
 }

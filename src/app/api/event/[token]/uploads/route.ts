@@ -44,20 +44,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
     const thumbPath = `events/${event.id}/${photoId}/thumb.jpg`;
     const videoPath = mediaType === "video" ? `events/${event.id}/${photoId}/video.${extFor(f.mime)}` : null;
 
-    const insertData: {
-      id: string;
-      event_id: string;
-      upload_session_id: string;
-      storage_path: string;
-      thumb_path: string;
-      original_filename: string;
-      mime_type: string;
-      file_size_bytes: number;
-      state: string;
-      media_type: string;
-      video_path?: string | null;
-      duration_ms?: number;
-    } = {
+    // Build insert data conditionally based on whether video columns might exist
+    const insertData: Record<string, unknown> = {
       id: photoId,
       event_id: event.id,
       upload_session_id: session.id,
@@ -67,19 +55,50 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
       mime_type: f.mime,
       file_size_bytes: f.size,
       state: "uploading",
-      media_type: mediaType,
     };
 
+    // Only include video-related fields if it's a video
+    // If columns don't exist, this will fail and we'll fall back to legacy behavior
     if (mediaType === "video" && videoPath) {
+      insertData.media_type = mediaType;
       insertData.video_path = videoPath;
       if (f.duration) insertData.duration_ms = f.duration;
+    } else {
+      insertData.media_type = "image";
     }
 
     const { error } = await db.from("photos").insert(insertData);
-    if (error) return fail(500, "Could not register upload");
+    if (error) {
+      console.error("Photo registration failed:", { code: error.code, message: error.message, details: error.details, hint: error.hint });
+      // If error is about missing column, try without video fields
+      if (error.code === "42703" || error.message?.includes("column") || error.message?.includes("does not exist")) {
+        console.warn("Video columns may not exist, retrying without media_type/video_path/duration_ms");
+        const legacyInsertData = {
+          id: photoId,
+          event_id: event.id,
+          upload_session_id: session.id,
+          storage_path: path,
+          thumb_path: thumbPath,
+          original_filename: f.name.replace(/[\u0000-\u001f]/g, "").slice(0, 255),
+          mime_type: f.mime,
+          file_size_bytes: f.size,
+          state: "uploading",
+        };
+        const { error: retryError } = await db.from("photos").insert(legacyInsertData);
+        if (retryError) {
+          console.error("Legacy photo registration also failed:", { code: retryError.code, message: retryError.message, details: retryError.details, hint: retryError.hint });
+          return fail(500, "Could not register upload");
+        }
+      } else {
+        return fail(500, "Could not register upload");
+      }
+    }
 
     const [o, t] = await Promise.all([db.storage.from("photos").createSignedUploadUrl(path), db.storage.from("photos").createSignedUploadUrl(thumbPath)]);
-    if (o.error || t.error || !o.data || !t.data) return fail(500, "Could not authorize upload");
+    if (o.error || t.error || !o.data || !t.data) {
+      console.error("Signed URL creation failed:", { original: o.error, thumb: t.error });
+      return fail(500, "Could not authorize upload");
+    }
 
     const uploadData: { photoId: string; original: { path: string; token: string }; thumb: { path: string; token: string }; video?: { path: string; token: string } } = {
       photoId,
@@ -87,9 +106,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ token: string 
       thumb: { path: thumbPath, token: t.data.token },
     };
 
-    if (mediaType === "video" && videoPath) {
+    // Only create video upload URL if we successfully inserted video columns
+    if (mediaType === "video" && videoPath && insertData.video_path) {
       const v = await db.storage.from("photos").createSignedUploadUrl(videoPath);
-      if (v.error || !v.data) return fail(500, "Could not authorize video upload");
+      if (v.error || !v.data) {
+        console.error("Video signed URL creation failed:", v.error);
+        return fail(500, "Could not authorize video upload");
+      }
       uploadData.video = { path: videoPath, token: v.data.token };
     }
 
