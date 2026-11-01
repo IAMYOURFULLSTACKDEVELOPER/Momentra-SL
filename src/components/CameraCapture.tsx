@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, RefreshCw, X, Video, StopCircle } from "lucide-react";
 
 type MediaType = "photo" | "video";
+type FacingMode = "environment" | "user";
 
 /** Opens the camera only after an explicit tap, prefers the rear camera, and always releases the tracks. */
 export function CameraCapture({ onCapture, onClose }: { onCapture: (file: File, type: MediaType) => void; onClose: () => void }) {
@@ -13,6 +14,7 @@ export function CameraCapture({ onCapture, onClose }: { onCapture: (file: File, 
   const [error, setError] = useState<string | null>(null);
   const [shot, setShot] = useState<{ blob: Blob; url: string; type: MediaType } | null>(null);
   const [mode, setMode] = useState<MediaType>("photo");
+  const [facingMode, setFacingMode] = useState<FacingMode>("environment");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
 
@@ -29,14 +31,18 @@ export function CameraCapture({ onCapture, onClose }: { onCapture: (file: File, 
     if (!navigator.mediaDevices?.getUserMedia) return setError("Camera is not supported here. Use \"Choose Photos\" instead.");
     try {
       stream.current = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 } },
+        video: { facingMode: { ideal: facingMode }, width: { ideal: 1920 } },
         audio: mode === "video"
       });
       if (video.current) { video.current.srcObject = stream.current; await video.current.play(); }
     } catch { setError("Camera access was denied or is unavailable. You can still choose photos from your library."); }
   }
 
-  useEffect(() => { void start(); return stop; }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  function switchCamera() {
+    setFacingMode((prev) => prev === "environment" ? "user" : "environment");
+  }
+
+  useEffect(() => { void start(); return stop; }, [mode, facingMode]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { if (shot) URL.revokeObjectURL(shot.url); }, [shot]);
 
   useEffect(() => {
@@ -94,9 +100,14 @@ export function CameraCapture({ onCapture, onClose }: { onCapture: (file: File, 
   return (
     <div role="dialog" aria-modal="true" aria-label="Camera" className="fixed inset-0 z-50 flex flex-col bg-black">
       <button onClick={close} aria-label="Close camera" className="absolute right-3 top-3 z-10 rounded-full bg-white/20 p-2 text-white"><X /></button>
-      <button onClick={switchMode} aria-label={`Switch to ${mode === "photo" ? "video" : "photo"}`} className="absolute left-3 top-3 z-10 rounded-full bg-white/20 p-2 text-white">
-        {mode === "photo" ? <Video className="h-5 w-5" /> : <Camera className="h-5 w-5" />}
-      </button>
+      <div className="absolute left-3 top-3 z-10 flex gap-2">
+        <button onClick={switchMode} aria-label={`Switch to ${mode === "photo" ? "video" : "photo"}`} className="rounded-full bg-white/20 p-2 text-white">
+          {mode === "photo" ? <Video className="h-5 w-5" /> : <Camera className="h-5 w-5" />}
+        </button>
+        <button onClick={switchCamera} aria-label="Switch camera" className="rounded-full bg-white/20 p-2 text-white">
+          <RefreshCw className="h-5 w-5" />
+        </button>
+      </div>
       <div className="flex flex-1 items-center justify-center overflow-hidden">
         {error ? <p className="max-w-xs p-6 text-center text-white">{error}</p> : shot ? (
           shot.type === "video" ? <video src={shot.url} controls className="max-h-full" /> : <img src={shot.url} alt="Captured preview" className="max-h-full" />
